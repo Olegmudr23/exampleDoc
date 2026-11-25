@@ -1,0 +1,323 @@
+openapi: 3.0.4
+info:
+  title: Сервис учета личных финансов
+  description: В рамках обучения через терни к звездам
+  termsOfService: 'https://example.com/terms/'
+  contact:
+    email: student@example.com
+  license:
+    name: Учебный проект
+    url: 'https://www.example.org/licenses/LICENSE-2.0.html'
+  version: 1.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://mock.example.com/finance/v1
+  - url: 'https://dev.example.com/'
+    description: Dev стенд
+  - url: 'https://test.example.com'
+    description: Test стенд
+  - url: 'https://prod.example.com'
+    description: Prod стенд
+tags:
+  - name: user
+    description: Info about user
+  - name: transaction
+    description: Transaction information
+  - name: information security
+    description: ///
+paths:
+  /users:
+    post:
+      tags:
+        - user
+      summary: Регистрация пользователя
+      description: Регистрация по email и паролю
+      operationId: createUser
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/requestUserCreated'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  сode: 
+                    type: string
+                    example: 'User Created'
+                  message:
+                    type: string
+                    example: Пользователь зарегистрирован успешно
+                  userId:
+                    type: string
+                    format: uuid
+                    description: Id пользователя
+                    example: 'abfba36e-18c8-484d-9543-865661905c59'
+                  email:
+                    type: string
+                    format: email
+                    description: Email нового пользователя
+                    example: student@example.com
+                required:
+                  - code
+                  - message 
+                  - userId
+                  - email
+        '400':
+          description: Некорретные данные для регистрации
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  сode: 
+                    type: string
+                    example: 'Invalid_Data'
+                  message:
+                    type: string
+                    example: 'Некорретные данные'
+                required: 
+                  - code
+                  - message
+        '409':
+          description: Пользователь уже зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  сode: 
+                    type: string
+                    example: 'User_Already_Registered.'
+                  message:
+                    type: string
+                    example: 'Пользователь уже зарегистрирован с таким email'
+                required: 
+                  - code
+                  - message
+  /transactions/:
+    get:
+      tag: 
+        -transaction
+      summary: Получить список доступных операций
+      security: 
+        - BearerAuth: []
+      parameters: 
+        - name: operationType
+          in: query
+          required: false
+          description: Фильтр по типу операции
+          schema: 
+            type: string
+            example: 'income'
+            enum:
+              - 'income'
+              - 'expense'
+        - name: categoryOperation
+          in: query
+          required: false
+          description: Фильтр по категории операции
+          schema: 
+            type: string
+            example: 'food'
+            enum:
+              - 'food'
+              - 'salary'
+              - 'transport'
+        - name: dateSurgeryFrom
+          in: query
+          required: false
+          description: Фильтр по дате операции (от включительно)
+          schema: 
+            type: string
+            format: date
+            example: '2027-10-01'
+        - name: dateSurgeryTo
+          in: query
+          required: false
+          description: Фильтр по дате операции (до включительно)
+          schema: 
+            type: string
+            format: date
+            example: '2026-10-01'
+        - name: sumMin
+          in: query
+          required: false
+          description: Фильтр по минимальной сумме - от (включительно)
+          schema: 
+            type: number
+            example: 10.0
+        - name: sumMax
+          in: query
+          required: false
+          description: Фильтр по максимальной сумме - до (включительно)
+          schema: 
+            type: number
+            example: 10.0
+        - name: sortOrder
+          in: query
+          description: Направление сортировки по дате
+          schema: 
+            type: string
+            enum: 
+              - asc
+              - desc
+            default: asc
+components:
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+          example: 'abfba36e-18c8-484d-9543-865661905c59'
+          description: Id транзакции
+        operationType:
+          type: string
+          description: Тип операции
+          example: 'income'
+          enum:
+            - 'income'
+            - 'expense'
+        sum:
+          type: number
+          minimum: 0
+          description: Сумма операции
+          example: 178.90
+        dateSurgery:
+          type: string
+          description: Дата операции
+          format: date-time
+          example: '2026-10-01T01:44:00+03:00'
+        description:
+          type: string
+          maxLength: 256
+          description: Описание операции
+          example: 'Перевод маме'
+        categoryOperation:
+          type:  string
+          description: Категория операции
+          example: 'food'
+          enum:
+            - 'food'
+            - 'salary'
+            - 'transport'
+        owner:
+          type: string
+          format: uuid
+          maxLength: 256
+          description: Id пользователя
+          example: 'abfba36e-18c8-484d-9543-865661905c59'
+      required:
+        - transactionId
+        - operationType
+        - sum
+        - dateSurgery
+        - categoryOperation
+        - owner      
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор пользователя
+          example: 'abfba36e-18c8-484d-9543-865661905c59'
+          minLength: 36
+          maxLength: 36
+        email:
+          type: string
+          example: 'student@example.com'
+          format: email
+          maxLength: 256
+          description: Уникальный email пользователя
+        password:
+          type: string
+          example: '77884d5f47cc87e74a80e1e9cf0c9a40'
+          readOnly: true
+          description: хэш пароля пользователя
+        dateRegistration:
+          type: string
+          description: Дата регистрации пользователя
+          format: date-time
+          example: '2026-10-01T01:44:00+03:00'
+      required: 
+        - userId
+        - email
+        - password
+        - dateRegistration
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+      xml:
+        name: '##default'
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+    requestUserCreated:
+      type: object
+      title: requestCreateUser
+      description: 'Тело запроса на регистрацию'
+      properties:
+        email:
+          type: string
+          description: Email нового пользователя
+          format: email
+          example: student@example.com
+          maxLength: 256
+        password:
+          type: string
+          description: пароль пользователя
+          minLength: 1
+          examle: 'Очень_сложный_пароль'
+  requestBodies:
+    Pet:
+      description: Pet object that needs to be added to the store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Pet'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Pet'
+    UserArray:
+      description: List of user object
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+definitions:
+  Model:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64

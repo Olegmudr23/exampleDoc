@@ -1,0 +1,787 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Сервис учета личных финансов",
+    "description": "В рамках обучения через терни к звездам. Регистрация по email, Basic Auth с проверкой scrypt-хеша. Операции изолированы по пользователям. Даты фильтруются по дням UTC.",
+    "termsOfService": "https://example.com/terms/",
+    "contact": {
+      "email": "student@example.com"
+    },
+    "license": {
+      "name": "Учебный проект",
+      "url": "https://www.example.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "transaction",
+      "description": "Transaction information"
+    },
+    {
+      "name": "auth",
+      "description": "Регистрация и проверка учётных данных"
+    }
+  ],
+  "paths": {
+    "/transactions/": {
+      "get": {
+        "tags": [
+          "transaction"
+        ],
+        "summary": "Получить список доступных операций",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "operationType",
+            "in": "query",
+            "required": false,
+            "description": "Фильтр по типу операции",
+            "schema": {
+              "type": "string",
+              "example": "income",
+              "enum": [
+                "income",
+                "expense"
+              ]
+            }
+          },
+          {
+            "name": "categoryOperation",
+            "in": "query",
+            "required": false,
+            "description": "Фильтр по категории операции",
+            "schema": {
+              "type": "string",
+              "example": "food",
+              "enum": [
+                "food",
+                "salary",
+                "transport"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Фильтр по дате операции (от включительно)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-10-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Фильтр по дате операции (до включительно)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2027-10-01"
+            }
+          },
+          {
+            "name": "sumMin",
+            "in": "query",
+            "required": false,
+            "description": "Фильтр по минимальной сумме - от (включительно)",
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          },
+          {
+            "name": "sumMax",
+            "in": "query",
+            "required": false,
+            "description": "Фильтр по максимальной сумме - до (включительно)",
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Направление сортировки по дате",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список операций текущего пользователя. Если операций нет — пустой массив.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Transaction"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные фильтры: неверный формат или значение,\nfrom больше to либо sumMin больше sumMax.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_FILTERS",
+                  "message": "Дата from не должна быть позже даты to"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Логин или пароль отсутствуют либо неверны"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "transaction"
+        ],
+        "summary": "Добавить транзакцию",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operationType": {
+                    "type": "string",
+                    "description": "Тип операции",
+                    "enum": [
+                      "income",
+                      "expense"
+                    ]
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Сумма операции",
+                    "minimum": 0,
+                    "example": 189,
+                    "exclusiveMinimum": true,
+                    "multipleOf": 0.01,
+                    "maximum": 90071992547409.9
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Описание операции",
+                    "maxLength": 256,
+                    "example": "Перевод маме"
+                  },
+                  "categoryOperation": {
+                    "type": "string",
+                    "description": "Категория операции",
+                    "example": "food",
+                    "enum": [
+                      "food",
+                      "salary",
+                      "transport"
+                    ]
+                  },
+                  "transactionDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Дата и время финансовой операции",
+                    "example": "2026-10-01T14:00:00+03:00"
+                  }
+                },
+                "required": [
+                  "operationType",
+                  "amount",
+                  "categoryOperation",
+                  "transactionDate"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Операция создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "transactionId": {
+                      "type": "string",
+                      "example": "9bfba36e-18c8-484d-9543-865661905c59",
+                      "format": "uuid",
+                      "maxLength": 256
+                    }
+                  },
+                  "required": [
+                    "transactionId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные данные: отсутствует обязательное поле,\nневерный формат даты или сумма меньше либо равна нулю.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_TRANSACTION_DATA",
+                  "message": "Сумма операции должна быть больше нуля"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Логин или пароль отсутствуют либо неверны"
+          },
+          "422": {
+            "$ref": "#/components/responses/BusinessValidationError"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/{transactionId}": {
+      "parameters": [
+        {
+          "name": "transactionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid",
+            "example": "abfba36e-18c8-484d-9543-865661905c59",
+            "description": "id операции"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "transaction"
+        ],
+        "summary": "Получить детали конкретной операции",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Операция текущего пользователя",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "Логин или пароль отсутствуют либо неверны"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/TransactionNotFound"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "transaction"
+        ],
+        "summary": "Редактирование текущей операции, доступно изменение только категории или описания",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/requestTransactionEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Операция отредактирована",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный формат идентификатора или тела запроса:\nпустой объект, неизвестные поля либо описание\nдлиннее 256 символов.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_UPDATE_DATA",
+                  "message": "Нужно передать хотя бы одно поле для изменения"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Логин или пароль отсутствуют либо неверны"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/TransactionNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/BusinessValidationError"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "transaction"
+        ],
+        "summary": "Удаление операции",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Операция удалена"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "Логин или пароль отсутствуют либо неверны"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/TransactionNotFound"
+          },
+          "500": {
+            "description": "Внутренняя ошибка сервера",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "База доступна",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Регистрация по email и паролю",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 8,
+                    "description": "Максимум 1024 байта UTF-8"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Пользователь создан; пароль и хеш не возвращаются",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные данные"
+          },
+          "409": {
+            "description": "Email уже зарегистрирован"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Вход: проверка email и пароля из Basic Auth",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Текущий пользователь",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверные учётные данные"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "abfba36e-18c8-484d-9543-865661905c59",
+            "description": "Id транзакции"
+          },
+          "operationType": {
+            "type": "string",
+            "description": "Тип операции",
+            "example": "income",
+            "enum": [
+              "income",
+              "expense"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "description": "Сумма операции",
+            "example": 178.9,
+            "multipleOf": 0.01,
+            "maximum": 90071992547409.9
+          },
+          "transactionDate": {
+            "type": "string",
+            "description": "Дата операции",
+            "format": "date-time",
+            "example": "2026-10-01T01:44:00+03:00"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Описание операции",
+            "example": "Перевод маме"
+          },
+          "categoryOperation": {
+            "type": "string",
+            "description": "Категория операции",
+            "example": "food",
+            "enum": [
+              "food",
+              "salary",
+              "transport"
+            ]
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid",
+            "maxLength": 256,
+            "description": "Id пользователя",
+            "example": "abfba36e-18c8-484d-9543-865661905c59"
+          }
+        },
+        "required": [
+          "transactionId",
+          "operationType",
+          "amount",
+          "transactionDate",
+          "categoryOperation",
+          "owner"
+        ]
+      },
+      "requestTransactionEdit": {
+        "type": "object",
+        "title": "requestTransactionEdit",
+        "description": "Тело запроса на изменение",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "categoryOperation": {
+            "type": "string",
+            "description": "Категория операции для изменения",
+            "example": "food",
+            "enum": [
+              "food",
+              "salary",
+              "transport"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Описание операции",
+            "maxLength": 256,
+            "example": "Перевод папе"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Код ошибки для обработки клиентом"
+          },
+          "message": {
+            "type": "string",
+            "description": "Описание ошибки"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Некорректный запрос: неверный формат данных, отсутствуют обязательные поля или нарушены ограничения.\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "code": "BAD_REQUEST",
+              "message": "Некорректные данные запроса"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Операция принадлежит другому пользователю",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "code": "FORBIDDEN",
+              "message": "Нет доступа к этой операции"
+            }
+          }
+        }
+      },
+      "TransactionNotFound": {
+        "description": "Операция с указанным идентификатором не найдена",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "code": "TRANSACTION_NOT_FOUND",
+              "message": "Операция не найдена"
+            }
+          }
+        }
+      },
+      "BusinessValidationError": {
+        "description": "Ошибка бизнес-валидации, например недопустимый тип или категория операции.\n",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "code": "BUSINESS_VALIDATION_ERROR",
+              "message": "Недопустимое значение типа или категории операции"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    }
+  }
+}
